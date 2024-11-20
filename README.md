@@ -23,3 +23,7 @@ The main aim of this project is to serve as a playground to test and refine an a
 1. Ensure you have `pygame` installed:
    ```bash
    pip install pygame
+
+
+## Update
+Added the self solving function I was thinkng about but it fails to perform as intended, will expand on this
