@@ -23,3 +23,10 @@ The main aim of this project is to serve as a playground to test and refine an a
 1. Ensure you have `pygame` installed:
    ```bash
    pip install pygame
+
+## Update 2
+
+It is running much better now able to achieve an average score of around 7500 on average will continue to fine tune the approach   
+
+   ![image](https://github.com/user-attachments/assets/3a1b6c87-45b3-48f9-9e54-28e6f4d08b08)
+
