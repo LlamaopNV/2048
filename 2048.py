@@ -82,12 +82,27 @@ def draw_board(board, score, score_increment):
                 text_rect = text.get_rect(center=rect.center)
                 SCREEN.blit(text, text_rect)
 
-    button_rect = pygame.Rect(WINDOW_SIZE[0] // 2 - 50, WINDOW_HEIGHT + 10 + SCORE_HEIGHT, 100, 30)
-    pygame.draw.rect(SCREEN, BUTTON_COLOR, button_rect)
-    button_text = FONT.render("Reset", True, BUTTON_TEXT_COLOR)
-    text_rect = button_text.get_rect(center=button_rect.center)
-    SCREEN.blit(button_text, text_rect)
-    return button_rect
+    # Draw buttons
+    button_width = 100
+    button_height = 30
+    button_spacing = 20  # Space between buttons
+    total_buttons_width = button_width * 2 + button_spacing
+    start_x = (WINDOW_SIZE[0] - total_buttons_width) // 2
+
+    reset_button_rect = pygame.Rect(start_x, WINDOW_HEIGHT + 10 + SCORE_HEIGHT, button_width, button_height)
+    solve_button_rect = pygame.Rect(start_x + button_width + button_spacing, WINDOW_HEIGHT + 10 + SCORE_HEIGHT, button_width, button_height)
+
+    pygame.draw.rect(SCREEN, BUTTON_COLOR, reset_button_rect)
+    reset_button_text = FONT.render("Reset", True, BUTTON_TEXT_COLOR)
+    reset_text_rect = reset_button_text.get_rect(center=reset_button_rect.center)
+    SCREEN.blit(reset_button_text, reset_text_rect)
+
+    pygame.draw.rect(SCREEN, BUTTON_COLOR, solve_button_rect)
+    solve_button_text = FONT.render("Solve", True, BUTTON_TEXT_COLOR)
+    solve_text_rect = solve_button_text.get_rect(center=solve_button_rect.center)
+    SCREEN.blit(solve_button_text, solve_text_rect)
+
+    return {'reset': reset_button_rect, 'solve': solve_button_rect}
 
 
 def draw_log(log):
@@ -135,6 +150,16 @@ def move_and_merge(board, direction):
         board = rotate_board(board, clockwise=False)
     return moved, board, score_increment
 
+def ai_move(board):
+    # Simple AI: Prefer 'up' and 'left' moves
+    preferred_moves = ['up', 'left', 'down', 'right']
+    move_functions = {'up': 3, 'down': 1, 'left': 0, 'right': 2}
+    for move in preferred_moves:
+        temp_board = [row[:] for row in board]
+        moved, new_board, increment = move_and_merge(temp_board, move_functions[move])
+        if moved:
+            return move
+    return None  # No moves possible
 
 def main():
     board = initialize_board()
@@ -143,17 +168,21 @@ def main():
     running = True
     clock = pygame.time.Clock()
     log = []
+    ai_active = False
+    ai_move_delay = 200  # milliseconds
+    ai_last_move_time = 0
 
     while running:
+        current_time = pygame.time.get_ticks()
         previous_board = [row[:] for row in board]
-        button_rect = draw_board(board, score, score_increment)
+        buttons = draw_board(board, score, score_increment)
         draw_log(log)
         pygame.display.update()
         score_increment = 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN:
+            if not ai_active and event.type == pygame.KEYDOWN:
                 moved = False
                 increment = 0
                 input_key = ""
@@ -177,11 +206,32 @@ def main():
                 else:
                     log.append(f"Invalid Move: {input_key}")
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if button_rect.collidepoint(event.pos):
+                if buttons['reset'].collidepoint(event.pos):
                     board = initialize_board()
                     score = 0
                     score_increment = 0
                     log = []  # Clear the log
+                    ai_active = False
+                elif buttons['solve'].collidepoint(event.pos):
+                    ai_active = True
+
+        if ai_active:
+            if current_time - ai_last_move_time > ai_move_delay:
+                ai_direction = ai_move(board)
+                if ai_direction is not None:
+                    move_functions = {'up': 3, 'down': 1, 'left': 0, 'right': 2}
+                    moved, board, increment = move_and_merge(board, move_functions[ai_direction])
+                    if moved:
+                        score += increment
+                        score_increment = increment
+                        add_new_tile(board)
+                        log.append(f"AI Move: {ai_direction.capitalize()}, +{increment} points, Total Score: {score}")
+                    else:
+                        log.append(f"AI Invalid Move: {ai_direction.capitalize()}")
+                    ai_last_move_time = current_time
+                else:
+                    log.append("AI cannot make a move. Game over.")
+                    ai_active = False
 
         clock.tick(60)
 
